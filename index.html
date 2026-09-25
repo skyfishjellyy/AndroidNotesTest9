@@ -169,6 +169,8 @@
     width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;
     font:600 14.5px 'Outfit';color:var(--ink);background:#fff;transition:all .15s;
   }
+  .confirm{border:1px solid var(--tint2);background:var(--tint);border-radius:14px;padding:13px 14px;animation:rise .3s cubic-bezier(.22,1,.36,1) both}
+  .confirm p{font-size:13.5px;font-weight:600;color:var(--accent-ink);margin-bottom:10px}
   .name:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(222,130,64,.18)}
   .row{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
   .btn-sm{height:34px;padding:0 13px;font-size:13px;font-weight:700;border-radius:9px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
@@ -353,14 +355,28 @@
 
 <!-- save / notes panel -->
 <aside class="panel" id="panel" role="dialog" aria-label="Notes">
-  <header>
-    <h2>Notes</h2>
+<header>
+  <h2>Notes</h2>
+  <div style="display:flex;gap:6px;align-items:center">
+    <button class="btn-sm ghost" id="newNoteBtn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      New
+    </button>
     <button class="tbtn sm" id="panelClose" aria-label="Close notes menu">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
-  </header>
+  </div>
+</header>
   <div class="panel-body">
     <div class="card">
+      <div class="confirm" id="newConfirm" hidden>
+        <p>Unsaved changes on this sheet.</p>
+          <div class="row" style="margin-top:0">
+            <button class="btn-sm primary" id="confirmSaveNew">Save &amp; new</button>
+            <button class="btn-sm ghost" id="confirmDiscard">Discard</button>
+            <button class="btn-sm ghost" id="confirmCancel">Cancel</button>
+          </div>
+      </div>
       <p class="lbl">Current canvas</p>
       <input class="name" id="noteName" placeholder="Untitled note" maxlength="48">
       <div class="row">
@@ -881,6 +897,21 @@ function saveCurrentNote(){
   dirty=false; updateDirty();
   renderList(); toast('Note saved');
 }
+  function startNew(){
+  strokes=[]; live=null; selection.clear();
+  currentNoteId=null; nameInput.value='';
+  undoStack=[]; redoStack=[]; updateHistBtns();
+  dirty=false; updateDirty(); updateSelUI();
+  view.s=1; view.x=-W/2; view.y=-H/2; updateZoomLabel();
+  requestRender(); toast('Fresh sheet — give it a name and save');
+}
+function hideConfirm(){ $('#newConfirm').hidden=true; }
+
+$('#newNoteBtn').onclick = ()=> dirty ? (hideConfirm(), $('#newConfirm').hidden=false) : startNew();
+$('#confirmSaveNew').onclick = ()=>{ saveCurrentNote(); startNew(); hideConfirm(); };
+$('#confirmDiscard').onclick = ()=>{ startNew(); hideConfirm(); };
+$('#confirmCancel').onclick = hideConfirm;
+
 function renderList(){
   const store=loadStore();
   const items=Object.entries(store).sort((a,b)=>b[1].updated-a[1].updated);
@@ -969,6 +1000,8 @@ function setPanel(open){
   panel.classList.toggle('open',open);
   panel.setAttribute('aria-hidden', String(!open));
   if(open){ renderList(); }
+  if(open){ renderList(); hideConfirm(); }
+
 }
 $('#saveBtn').onclick=()=>setPanel(!panelOpen);
 $('#panelClose').onclick=()=>setPanel(false);
